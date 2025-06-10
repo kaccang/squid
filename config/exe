@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# Variabel
+LINK="https://github.com/kaccang/squid/raw/main"
+MYIP=$(wget -qO- ipinfo.io/ip)
+CITY=$(curl -s ipinfo.io/city)
+TIME=$(date +'%Y-%m-%d %H:%M:%S')
+
+# Membuat direktori yang diperlukan
+mkdir -p /etc/xray /var/log/xray/ /var/www/html/ /root/.acme.sh
+
+# Input domain
+read -rp "Input Your Domain For This Server: " SUB_DOMAIN
+echo "$SUB_DOMAIN" > /etc/xray/domain
+
+# Update dan install paket dasar
+apt update && apt upgrade -y
+apt install -y nginx  snap vnstat tar zip pwgen openssl netcat-openbsd \
+curl socat xz-utils wget snap apt-transport-https dnsutils chrony jq \
+tar unzip p7zip-full ca-certificates net-tools
+
+# Install speedtest via snap (karena tidak tersedia di apt)
+snap install speedtest
+
+# Bersihkan paket yang tidak diperlukan
+apt-get clean all && apt-get autoremove -y
+
+# Atur zona waktu dan informasi server
+timedatectl set-timezone Asia/Jakarta
+curl -s ipinfo.io/org | cut -d ' ' -f 2- > /root/isp
+curl -s ipinfo.io/city > /root/city
+
+# Install SSL dengan acme.sh
+domain=$(cat /etc/xray/domain)
+systemctl stop nginx
+curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+chmod +x /root/.acme.sh/acme.sh
+/root/.acme.sh/acme.sh --upgrade --auto-upgrade
+/root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+/root/.acme.sh/acme.sh --issue -d "$domain" --standalone -k ec-256
+/root/.acme.sh/acme.sh --installcert -d "$domain" --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+chmod 600 /etc/xray/xray.key /etc/xray/xray.crt
+
+# Install Xray
+XRAY_VERSION="v25.5.16"
+mkdir -p /usr/local/bin /usr/local/share/xray /var/log/xray
+
+wget -O /tmp/xray-linux.zip https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-64.zip
+unzip -o /tmp/xray-linux.zip -d /tmp/xray
+mv /tmp/xray/xray /usr/local/bin/xray
+chmod +x /usr/local/bin/xray
+
+wget -O /usr/local/share/xray/geosite.dat https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat
+wget -O /usr/local/share/xray/geoip.dat https://github.com/v2fly/geoip/releases/latest/download/geoip.dat
+
+# Bersihkan file sementara
+rm -rf /tmp/xray /tmp/xray-linux.zip
+
+# Cek hasil instalasi Xray
+if [[ -f "/usr/local/bin/xray" && -f "/usr/local/share/xray/geosite.dat" && -f "/usr/local/share/xray/geoip.dat" ]]; then
+    echo "Xray Core ${XRAY_VERSION} berhasil diinstall!"
+else
+    echo "Gagal menginstall Xray Core, cek koneksi atau URL."
+    exit 1
+fi
+
+# Konfigurasi nginx dan Xray
+rm /etc/nginx/nginx.conf
+wget -O /etc/nginx/nginx.conf "$LINK/config/nginx.conf"
+
+sed -i "s/server_name example.com;/server_name $domain;/" /etc/nginx/nginx.conf
+systemctl reload nginx
+
+wget -O /etc/xray/config.json "$LINK/config/config.json"
+else
+    echo "Config sudah ada dan tidak kosong."
+fi
+# Tambahkan crontab
+(crontab -l; echo "0 1 * * * /usr/bin/bckp1") | crontab -
+(crontab -l; echo "0 2 */25 * * /usr/bin/cert") | crontab -
+
+# Atur service Xray
+cat > /etc/systemd/system/xray.service <<EOF
+[Unit]
+Description=Xray Service
+After=network.target nss-lookup.target mnt-xray.mount
+
+[Service]
+User=www-data
+ExecStart=/usr/local/bin/xray run -config /mnt/xray/config.json
+Restart=on-failure
+LimitNPROC=10000
+LimitNOFILE=1000000
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Buat direktori menu
+mkdir -p /root/menu/
+
+# Daftar file yang perlu didownload
+FILES=(
+    "add-ws"
+    "bckp1"
+    "cek-ws"
+    "cert"
+    "del-ws"
+    "menu"
+    "renew-ws"
+    "restore-vpn"
+    "user-ws"
+    "xp"
+)
+
+LINK="https://github.com/kaccang/squid/raw/main/menu/"
+
+wget -O /usr/bin/add-ws "$LINK/add-ws"
+wget -O /usr/bin/bckp1 "$LINK/bckp1"
+wget -O /usr/bin/cek-ws "$LINK/cek-ws"
+wget -O /usr/bin/cert "$LINK/cert"
+wget -O /usr/bin/del-ws "$LINK/del-ws"
+wget -O /usr/bin/menu "$LINK/menu"
+wget -O /usr/bin/renew-ws "$LINK/renew-ws"
+wget -O /usr/bin/restore-vpn "$LINK/restore-vpn"
+wget -O /usr/bin/user-ws "$LINK/user-ws"
+wget -O /usr/bin/xp "$LINK/xp"
+
+# Beri permission execute
+chmod +x /usr/bin/{add-ws,bckp1,cek-ws,cert,del-ws,menu,renew-ws,restore-vpn,user-ws,xp}
+
+echo "Semua file sudah diinstall!"
+
+# Bersihkan direktori sementara
+rm -rf /root/menu
+
+echo "All tools have been installed
+
+# Ensure menu runs automatically after login
+if ! grep -q "menu" ~/.bashrc; then
+    echo "/usr/bin/menu" >> ~/.bashrc
+fi
+
+mkdir -p /var/log/xray
+touch /var/log/xray/access.log /var/log/xray/error.log
+chown -R www-data:www-data /var/log/xray
+chmod -R 644 /var/log/xray/*
+
+# Reload systemd dan mulai layanan
+systemctl daemon-reload
+systemctl enable nginx xray
+systemctl start nginx xray
+
+# Hapus riwayat dan reboot
+history -c
+
+ip=$(curl -s ipv4.icanhazip.com)
+tanggal=$(date -d "+30 days" +"%Y-%m-%d")
+echo -e "${green}$ip $tanggal${nc}"
+echo -e "${yellow}$ip $tanggal${nc}"
+echo -e "${green}$ip $tanggal${nc}"
+echo -e "${yellow}$ip $tanggal${nc}"
+echo "Instalasi selesai, rebooting dalam 10 detik..."
+sleep 15
