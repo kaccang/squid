@@ -71,10 +71,13 @@ wget -O /etc/nginx/nginx.conf "$LINK/config/nginx.conf"
 sed -i "s/server_name example.com;/server_name $domain;/" /etc/nginx/nginx.conf
 systemctl reload nginx
 
-wget -O /etc/xray/config.json "$LINK/config/config.json"
+# Cek apakah config.json kosong atau belum ada
+if [ ! -s /etc/xray/config.json ]; then
+    wget -O /etc/xray/config.json "$LINK/config/config.json"
 else
     echo "Config sudah ada dan tidak kosong."
 fi
+
 # Tambahkan crontab
 (crontab -l; echo "0 1 * * * /usr/bin/bckp1") | crontab -
 (crontab -l; echo "0 2 */25 * * /usr/bin/cert") | crontab -
