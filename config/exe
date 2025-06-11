@@ -6,6 +6,10 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Nonaktifkan IPv6 SEMENTARA (hindari error SSL github)
+echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+echo 1 > /proc/sys/net/ipv6/conf/default/disable_ipv6
+
 # Lock agar tidak dijalankan dua kali
 lockfile="/tmp/xray-setup.lock"
 if [[ -f "$lockfile" ]]; then
@@ -167,6 +171,9 @@ history -c
 # Informasi IP dan tanggal
 ip=$(curl -s ipv4.icanhazip.com)
 tanggal=$(date -d "+30 days" +"%Y-%m-%d")
+
+echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+echo 0 > /proc/sys/net/ipv6/conf/default/disable_ipv6
 
 # Warna terminal
 green='\033[0;32m'
