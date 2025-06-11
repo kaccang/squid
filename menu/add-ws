@@ -68,6 +68,8 @@ VMESS_NON_TLS=`cat<<EOF
       "tls": "none",
       "fp": "${browser}"
 }
+EOF`
+
 vmesslink1="vmess://$(echo $VMESS_WS | base64 -w 0)"
 vmesslink2="vmess://$(echo $VMESS_NON_TLS | base64 -w 0)"
 
