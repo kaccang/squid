@@ -1,12 +1,31 @@
 #!/bin/bash
 
+# Cek apakah dijalankan sebagai root
+if [[ $EUID -ne 0 ]]; then
+    echo "Silakan jalankan sebagai root."
+    exit 1
+fi
+
+# Lock agar tidak dijalankan dua kali
+lockfile="/tmp/xray-setup.lock"
+if [[ -f "$lockfile" ]]; then
+    echo "Script sudah pernah dijalankan atau sedang berjalan."
+    exit 1
+fi
+touch "$lockfile"
+
+# Logging ke file
+exec > >(tee -i /var/log/install.log)
+exec 2>&1
+
 # Variabel
-LINK="https://github.com/kaccang/squid/raw/main"
+BASE_LINK="https://github.com/kaccang/squid/raw/main"
+MENU_LINK="$BASE_LINK/menu"
 MYIP=$(wget -qO- ipinfo.io/ip)
 CITY=$(curl -s ipinfo.io/city)
 TIME=$(date +'%Y-%m-%d %H:%M:%S')
 
-# Membuat direktori yang diperlukan
+# Buat direktori yang dibutuhkan
 mkdir -p /etc/xray /var/log/xray/ /var/www/html/ /root/.acme.sh
 
 # Input domain
@@ -15,17 +34,17 @@ echo "$SUB_DOMAIN" > /etc/xray/domain
 
 # Update dan install paket dasar
 apt update && apt upgrade -y
-apt install -y nginx  snap vnstat tar zip pwgen openssl netcat-openbsd \
-curl socat xz-utils wget snap apt-transport-https dnsutils chrony jq \
+apt install -y nginx snapd snap vnstat tar zip pwgen openssl netcat-openbsd \
+curl socat xz-utils wget apt-transport-https dnsutils chrony jq \
 tar unzip p7zip-full ca-certificates net-tools
 
-# Install speedtest via snap (karena tidak tersedia di apt)
+# Install speedtest
 snap install speedtest
 
-# Bersihkan paket yang tidak diperlukan
+# Bersih-bersih
 apt-get clean all && apt-get autoremove -y
 
-# Atur zona waktu dan informasi server
+# Atur zona waktu dan info server
 timedatectl set-timezone Asia/Jakarta
 curl -s ipinfo.io/org | cut -d ' ' -f 2- > /root/isp
 curl -s ipinfo.io/city > /root/city
@@ -53,44 +72,43 @@ chmod +x /usr/local/bin/xray
 wget -O /usr/local/share/xray/geosite.dat https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat
 wget -O /usr/local/share/xray/geoip.dat https://github.com/v2fly/geoip/releases/latest/download/geoip.dat
 
-# Bersihkan file sementara
+# Hapus file sementara
 rm -rf /tmp/xray /tmp/xray-linux.zip
 
 # Cek hasil instalasi Xray
 if [[ -f "/usr/local/bin/xray" && -f "/usr/local/share/xray/geosite.dat" && -f "/usr/local/share/xray/geoip.dat" ]]; then
-    echo "Xray Core ${XRAY_VERSION} berhasil diinstall!"
+    echo "✅ Xray Core ${XRAY_VERSION} berhasil diinstall!"
 else
-    echo "Gagal menginstall Xray Core, cek koneksi atau URL."
+    echo "❌ Gagal menginstall Xray Core. Cek koneksi atau URL."
     exit 1
 fi
 
-# Konfigurasi nginx dan Xray
-rm /etc/nginx/nginx.conf
-wget -O /etc/nginx/nginx.conf "$LINK/config/nginx.conf"
-
+# Konfigurasi nginx
+rm -f /etc/nginx/nginx.conf
+wget -O /etc/nginx/nginx.conf "$BASE_LINK/config/nginx.conf"
 sed -i "s/server_name example.com;/server_name $domain;/" /etc/nginx/nginx.conf
 systemctl reload nginx
 
-# Cek apakah config.json kosong atau belum ada
+# Konfigurasi Xray config.json
 if [ ! -s /etc/xray/config.json ]; then
-    wget -O /etc/xray/config.json "$LINK/config/config.json"
+    wget -O /etc/xray/config.json "$BASE_LINK/config/config.json"
 else
     echo "Config sudah ada dan tidak kosong."
 fi
 
 # Tambahkan crontab
-(crontab -l; echo "0 1 * * * /usr/bin/bckp1") | crontab -
-(crontab -l; echo "0 2 */25 * * /usr/bin/cert") | crontab -
+(crontab -l 2>/dev/null; echo "0 1 * * * /usr/bin/bckp1") | crontab -
+(crontab -l 2>/dev/null; echo "0 2 */25 * * /usr/bin/cert") | crontab -
 
-# Atur service Xray
+# Buat systemd service untuk Xray
 cat > /etc/systemd/system/xray.service <<EOF
 [Unit]
 Description=Xray Service
-After=network.target nss-lookup.target mnt-xray.mount
+After=network.target nss-lookup.target
 
 [Service]
 User=www-data
-ExecStart=/usr/local/bin/xray run -config /mnt/xray/config.json
+ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
 Restart=on-failure
 LimitNPROC=10000
 LimitNOFILE=1000000
@@ -102,7 +120,7 @@ EOF
 # Buat direktori menu
 mkdir -p /root/menu/
 
-# Daftar file yang perlu didownload
+# Unduh semua file menu
 FILES=(
     "add-ws"
     "bckp1"
@@ -112,38 +130,27 @@ FILES=(
     "menu"
     "renew-ws"
     "restore-vpn"
-    "user-ws"
     "xp"
 )
 
-LINK="https://github.com/kaccang/squid/raw/main/menu/"
+for file in "${FILES[@]}"; do
+    wget -O "/usr/bin/$file" "$MENU_LINK/$file"
+done
 
-wget -O /usr/bin/add-ws "$LINK/add-ws"
-wget -O /usr/bin/bckp1 "$LINK/bckp1"
-wget -O /usr/bin/cek-ws "$LINK/cek-ws"
-wget -O /usr/bin/cert "$LINK/cert"
-wget -O /usr/bin/del-ws "$LINK/del-ws"
-wget -O /usr/bin/menu "$LINK/menu"
-wget -O /usr/bin/renew-ws "$LINK/renew-ws"
-wget -O /usr/bin/restore-vpn "$LINK/restore-vpn"
-wget -O /usr/bin/user-ws "$LINK/user-ws"
-wget -O /usr/bin/xp "$LINK/xp"
+# Beri izin eksekusi
+chmod +x /usr/bin/{add-ws,bckp1,cek-ws,cert,del-ws,menu,renew-ws,restore-vpn,xp}
 
-# Beri permission execute
-chmod +x /usr/bin/{add-ws,bckp1,cek-ws,cert,del-ws,menu,renew-ws,restore-vpn,user-ws,xp}
+echo "✅ Semua file sudah diinstall!"
 
-echo "Semua file sudah diinstall!"
-
-# Bersihkan direktori sementara
+# Hapus direktori sementara
 rm -rf /root/menu
 
-echo "All tools have been installed
-
-# Ensure menu runs automatically after login
-if ! grep -q "menu" ~/.bashrc; then
+# Auto-jalankan menu saat login
+if ! grep -q "/usr/bin/menu" ~/.bashrc; then
     echo "/usr/bin/menu" >> ~/.bashrc
 fi
 
+# Atur log xray
 mkdir -p /var/log/xray
 touch /var/log/xray/access.log /var/log/xray/error.log
 chown -R www-data:www-data /var/log/xray
@@ -154,14 +161,23 @@ systemctl daemon-reload
 systemctl enable nginx xray
 systemctl start nginx xray
 
-# Hapus riwayat dan reboot
+# Hapus riwayat
 history -c
 
+# Informasi IP dan tanggal
 ip=$(curl -s ipv4.icanhazip.com)
 tanggal=$(date -d "+30 days" +"%Y-%m-%d")
+
+# Warna terminal
+green='\033[0;32m'
+yellow='\033[1;33m'
+nc='\033[0m'
+
 echo -e "${green}$ip $tanggal${nc}"
 echo -e "${yellow}$ip $tanggal${nc}"
 echo -e "${green}$ip $tanggal${nc}"
 echo -e "${yellow}$ip $tanggal${nc}"
-echo "Instalasi selesai, rebooting dalam 10 detik..."
-sleep 15
+
+echo "✅ Instalasi selesai, rebooting dalam 10 detik..."
+sleep 10
+reboot
