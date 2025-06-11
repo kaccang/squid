@@ -160,4 +160,3 @@ case $menu in
     echo "Invalid option, please try again."
     ;;
 esac
-root@hhuf1:~#
