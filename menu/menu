@@ -149,6 +149,7 @@ case $menu in
 
     echo -e "\nAll services restarted!"
     read -p "Tekan enter untuk kembali ke menu..."
+    menu
     ;;
 7)
     user-ws
