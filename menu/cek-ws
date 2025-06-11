@@ -73,6 +73,5 @@ for user in "${users[@]}"; do
     echo -e "\033[1;93m─────────────────────────────────────────\033[0m"
 done
 
-# Footer
-echo ""
 read -n 1 -s -r -p "Press any key to back on menu"
+menu
