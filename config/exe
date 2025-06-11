@@ -50,8 +50,8 @@ apt-get clean all && apt-get autoremove -y
 
 # Atur zona waktu dan info server
 timedatectl set-timezone Asia/Jakarta
-curl -s ipinfo.io/org | cut -d ' ' -f 2- > /root/isp
-curl -s ipinfo.io/city > /root/city
+curl -s ipinfo.io/org | cut -d ' ' -f 2- > /etc/xray/isp
+curl -s ipinfo.io/city > /etc/xray/city
 
 # Install SSL dengan acme.sh
 domain=$(cat /etc/xray/domain)
