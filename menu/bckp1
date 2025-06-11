@@ -24,6 +24,7 @@ cp /var/lib/vnstat/vnstat.db /etc/xray/
 # Konfigurasi Telegram
 CHATID="2105877122"
 KEY="5504637693:AAHpobTSJqSAhnvoEKUH4gdnU3jDxjWpwc4"
+TELEGRAM_API="https://api.telegram.org/bot$KEY/sendDocument"
 
 # Membuat backup
 backup_file="$domain-$IP-$date-$timestamp.zip"
@@ -39,11 +40,10 @@ upload=$(curl -s -F "file=@$backup_file" https://0x0.st)
 echo "Sending to Telegram..."
 curl -s -F chat_id="$CHATID" \
      -F document=@"$backup_file" \
-     -F caption="Backup VPN Configuration
+     -F caption="Backup VPN
 Domain: $domain
 IP: $IP
-Date: $date
-0x0.st: $upload" \
+Direct: $upload" \
      "$TELEGRAM_API" > /dev/null
 
 # Pembersihan
