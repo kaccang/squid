@@ -129,6 +129,7 @@ mkdir -p /root/menu/
 FILES=(
     "add-ws"
     "bckp1"
+    "bw-tele"
     "cek-ws"
     "cert"
     "del-ws"
@@ -144,7 +145,7 @@ for file in "${FILES[@]}"; do
 done
 
 # Beri izin eksekusi
-chmod +x /usr/bin/{add-ws,bckp1,cek-ws,cert,del-ws,menu,renew-ws,restore-vpn,user-ws,xp}
+chmod +x /usr/bin/{add-ws,bckp1,bw-tele,cek-ws,cert,del-ws,menu,renew-ws,restore-vpn,user-ws,xp}
 
 echo "✅ Semua file sudah diinstall!"
 
