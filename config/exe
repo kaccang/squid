@@ -125,7 +125,10 @@ EOF
 # Buat direktori menu
 mkdir -p /root/menu/
 
-# Unduh semua file menu
+BASE_LINK="https://github.com/kaccang/squid/raw/main"
+MENU_LINK="$BASE_LINK/menu"
+
+# Daftar file yang akan diunduh
 FILES=(
     "add-ws"
     "bckp1"
@@ -140,17 +143,14 @@ FILES=(
     "xp"
 )
 
+# Unduh & pasang file 
 for file in "${FILES[@]}"; do
-    wget -O "/usr/bin/$file" "$MENU_LINK/$file"
+    wget -q -O "/usr/bin/$file" "$MENU_LINK/$file"
+    chmod +x "/usr/bin/$file"
 done
 
-# Beri izin eksekusi
-chmod +x /usr/bin/{add-ws,bckp1,bw-tele,cek-ws,cert,del-ws,menu,renew-ws,restore-vpn,user-ws,xp}
-
-echo "✅ Semua file sudah diinstall!"
-
-# Hapus direktori sementara
-rm -rf /root/menu
+# Selesai, beri echo satu baris ringkas
+echo "✅ File berhasil dipasang."
 
 # Auto-jalankan menu saat login
 if ! grep -q "/usr/bin/menu" ~/.bashrc; then
