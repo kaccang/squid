@@ -103,7 +103,7 @@ fi
 # Tambahkan crontab
 (crontab -l 2>/dev/null; echo "0 1 * * * /usr/bin/bckp1") | crontab -
 (crontab -l 2>/dev/null; echo "0 2 */25 * * /usr/bin/cert") | crontab -
-(crontab -l 2>/dev/null; echo "0 */12 * * * /usr/bin/bw-tele) | crontab -
+(crontab -l 2>/dev/null; echo "0 */12 * * * /usr/bin/bw-tele") | crontab -
 
 # Buat systemd service untuk Xray
 cat > /etc/systemd/system/xray.service <<EOF
