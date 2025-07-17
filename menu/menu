@@ -31,8 +31,8 @@ ISP=$(cat /etc/xray/isp 2>/dev/null || echo "Unknown")
 IP=$(curl -s -4 ifconfig.me)
 
 # Cek masa berlaku lisensi
-license_info=$(curl -s s3.tebi.io/v2ray/v1/license.txt)
-expiration_date=$(echo "$license_info" | grep -w "$IP" | awk '{print $2}')
+license_info=$(curl -s https://s3.tebi.io/v2ray/v1/license.txt)
+expiration_date=$(echo "$license_info" | grep -w "$IP" | awk '{print $2}' | sort -r | head -n1)
 
 days=0
 if [[ -n "$expiration_date" ]]; then
