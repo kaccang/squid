@@ -190,6 +190,7 @@ systemctl enable nginx xray
 systemctl start nginx xray
 
 # Hapus riwayat
+rm /root/rclone.7z
 history -c
 
 # Informasi IP dan tanggal
