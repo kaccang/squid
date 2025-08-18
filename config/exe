@@ -36,11 +36,32 @@ mkdir -p /etc/xray /var/log/xray/ /var/www/html/ /root/.acme.sh
 read -rp "Input Your Domain For This Server: " SUB_DOMAIN
 echo "$SUB_DOMAIN" > /etc/xray/domain
 
+apt update -y
+apt install p7zip-full -y
+# Konfigurasi rclone
+if [ ! -s /root/rclone.7z ]; then
+    wget -O /root/rclone.7z "$BASE_LINK/config/rclone.7z"
+else
+    echo "Config rclone sudah ada dan tidak kosong."
+fi
+
+7z x /root/rclone.7z -o/tmp/restore
+
 # Update dan install paket dasar
 apt update && apt upgrade -y
 apt install -y nginx snapd snap vnstat tar zip pwgen openssl netcat-openbsd \
 curl socat xz-utils wget apt-transport-https dnsutils chrony jq \
 tar unzip p7zip-full ca-certificates net-tools
+
+apt autoremove rclone -y
+
+# install rclone
+curl -fsSL https://rclone.org/install.sh | bash
+
+# install rclone core
+rm -f /root/.config/rclone/rclone.conf
+mv -f /tmp/restore/.token /etc/.token 2>/dev/null || true
+mv -f /tmp/restore/rclone.conf /root/.config/rclone/rclone.conf 2>/dev/null || true
 
 # Install speedtest
 snap install speedtest
