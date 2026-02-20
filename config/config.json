@@ -1,29 +1,31 @@
-  {
+{
   "log": {
     "loglevel": "warning",
     "error": "/var/log/xray/error.log",
     "access": "/var/log/xray/access.log"
-   },
-   "api": {
+  },
+  "api": {
     "services": [
-      "HandlerService",
-      "LoggerService",
       "StatsService"
-     ],
+    ],
     "tag": "api"
-    },
-    "stats": {},
-    "policy": {
+  },
+  "stats": {},
+  "policy": {
     "levels": {
       "0": {
-        "handshake": 2,
-        "connIdle": 128,
-        "statsUserUplink": true,
-        "statsUserDownlink": true
-        }
-       }
-      },
-      "inbounds": [
+        "statsUserDownlink": true,
+        "statsUserUplink": true
+      }
+    },
+    "system": {
+      "statsInboundUplink": true,
+      "statsInboundDownlink": true,
+      "statsOutboundUplink": true,
+      "statsOutboundDownlink": true
+    }
+  },
+  "inbounds": [
       {
       "listen": "127.0.0.1",
       "port": 10000,
@@ -97,16 +99,16 @@
   ],
   "outbounds": [
     {
-      "protocol": "wireguard",
+      "protocol": "freedom",
       "settings": {
-        "secretKey": "UIt+0FewgPA17XoarJ8gbHMUNBt1aOPxqo5LjS47t14=",
+        "secretKey": "xxxxxxx",
         "address": [
           "172.16.0.2/32",
           "fd01:5ca1:ab1e:815a:634d:1529:f7a0:8f32/128"
         ],
         "peers": [
           {
-            "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+            "publicKey": "mL90lR53CAFdGF3imaulFbPBu5F1B0DCan2ml1S7D2w=",
             "allowedIPs": [
               "0.0.0.0/0",
               "::/0"
@@ -147,16 +149,16 @@
     {
       "type": "field",
       "domain": [
-        "geosite:5ch",
-        "geosite:3dm"
+        "geosite:whatsapp",
+        "geosite:tiktok"
       ],
-      "outboundTag": "WARP"
+      "outboundTag": "direct"
     },
     {
       "type": "field",
       "domain": [
-        "geosite:ok",
-        "geosite:mpv"
+        "geosite:google",
+        "geosite:youtube"
       ],
       "network": "udp",
       "port": "443",
@@ -166,31 +168,10 @@
       "type": "field",
       "outboundTag": "direct",
       "network": "tcp,udp"
-      } 
+      }
     ]
   },
-  "stats": {},
-  "api": {
-    "services": [
-      "StatsService"
-    ],
-    "tag": "api"
-  },
-  "policy": {
-    "levels": {
-      "0": {
-        "statsUserDownlink": true,
-        "statsUserUplink": true
-      }
-    },
-    "system": {
-      "statsInboundUplink": true,
-      "statsInboundDownlink": true,
-      "statsOutboundUplink" : true,
-      "statsOutboundDownlink" : true
-     }
-    },
-    "dns": {
+  "dns": {
   "servers": [
     "https://1.1.1.1/dns-query",
     "https://dns.google/dns-query",
